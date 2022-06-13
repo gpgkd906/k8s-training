@@ -1,6 +1,6 @@
 apiVersion: k3d.io/v1alpha2
 kind: Simple
-servers: 
+servers: 2
 network: k3d
 kubeAPI:
   hostIP: "0.0.0.0"
