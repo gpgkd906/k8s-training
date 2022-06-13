@@ -27,13 +27,13 @@ ports:
       - server[0]
   - port: 32080:32080
     nodeFilters:
-      - server[*]
+      - server[0]
   - port: 32081:32081
     nodeFilters:
-      - server[*]
+      - server[0]
   - port: 32100:32100
     nodeFilters:
-      - server[*]
+      - server[0]
 
 options:
   k3d:
