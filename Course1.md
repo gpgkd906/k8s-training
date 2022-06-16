@@ -210,7 +210,6 @@ kubectlはあくまでApiを呼び出すだけのコマンドツールです。
 ### Api呼び出すに必要な認証情報を取得
 
 ```bash
-less $HOME/.kube/config
 export client=$(grep client-cert $HOME/.kube/config |cut -d" " -f 6)
 echo $client | base64 -d - > ./client.pem
 export key=$(grep client-key-data $HOME/.kube/config |cut -d " " -f 6)
