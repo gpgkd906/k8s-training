@@ -1,0 +1,24 @@
+{
+    "kind": "Pod",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "curlpod",
+        "namespace": "handson",
+        "labels": {
+            "name": "examplepod"
+        }
+    },
+    "spec": {
+        "containers": [
+            {
+                "name": "nginx",
+                "image": "nginx",
+                "ports": [
+                    {
+                        "containerPort": 80
+                    }
+                ]
+            }
+        ]
+    }
+}

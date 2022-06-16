@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: rs-sample
+  namespace: handson
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      system: ReplicaSample
+  template:
+    metadata:
+      labels:
+        system: ReplicaSample
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.15.1
+        ports:
+        - containerPort: 80
