@@ -20,7 +20,6 @@
 
 また、今回ではk8sの構築やアーキテクチャーは今回触らない。
 
-
 ## namespaceを見る
 namespaces一覧を見る
 
@@ -61,8 +60,8 @@ k -n handson describe deploy nginx
 名前空間handsonにデプロイしたアプリをyamlファイルに書き出して、再生できるように編集する
 
 ```bash
-k -n handson get deploy nginx -o yaml > nginx.yaml
-code nginx.yaml
+k -n handson get deploy nginx -o yaml > nginx1.yaml
+code nginx1.yaml
 ```
 * creationTimestamp 削除
 * resourceVersion 削除
@@ -99,7 +98,6 @@ nginxのpodの中からアクセスしてみる
 k -n handson exec -it nginx-xxxxxxx -- /bin/bash
 curl 127.0.0.1
 ```
-
 外からアクセスできるようにexposeしてみる...
 
 ```bash
@@ -141,7 +139,6 @@ serviceの設定を更新する
 code nginx.svc.yaml
 ```
 * typeをLoadBalancerに変更
-* nodePort: 32080　追加
 * 上記項目をどこに変更あるいは追加するかは、k explainを使って特定する
 
 serviceを更新する
@@ -149,7 +146,6 @@ serviceを更新する
 ```bash
 k -n handson replace -f nginx.svc.yaml
 ```
-
 
 ### スケールアウトしてみる
 scaleコマンドを使ってみる
@@ -208,47 +204,3 @@ replicasの設定がないが、必ず各nodeに対象のpodが存在するこ�
 ```bash
 k -n handson get ds,pod -o wide
 ```
-
-## APIによる操作
-今までは、全てkubectlでkubernetesを操作したが、kubernetesは本来全ての操作をRestfulApiを通して実行できる。
-
-kubectlはあくまでApiを呼び出すだけのコマンドツールです。
-
-次回以降の内容を進む前に、Apiを呼び出す方法を見てみよう。
-
-### Api呼び出すに必要な認証情報を取得
-
-```bash
-export client=$(grep client-cert $HOME/.kube/config |cut -d" " -f 6)
-echo $client | base64 -d - > ./client.pem
-export key=$(grep client-key-data $HOME/.kube/config |cut -d " " -f 6)
-echo $key | base64 -d - > ./client-key.pem
-export auth=$(grep certificate-authority-data $HOME/.kube/config |cut -d " " -f 6)
-echo $auth | base64 -d - > ./ca.pem
-```
-
-kubernetesのApi-ServerのURLを確認する
-
-```bash
-kubectl config view | grep server
-```
-
-取得した認証情報を使ってAPIを呼び出す
-
-```bash
-curl --cert ./client.pem --key ./client-key.pem --cacert ./ca.pem https://0.0.0.0:6443/api/v1/pods
-```
-
-ApiでPodを作成してみよ
-
-```bash
-curl --cert ./client.pem --key ./client-key.pem --cacert ./ca.pem https://0.0.0.0:6443/api/v1/namespaces/handson/pods -X POST -H 'Content-Type: application/json' -d@course1/pod.json
-```
-
-Podが作成されていることを確認する
-
-```bash
-k -n handson get pod
-```
-
-考えてみよう：kubectlを実行するとき、認証情報を使っているのでしょうか？
