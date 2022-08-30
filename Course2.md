@@ -4,22 +4,27 @@ dive to kubernetes
 
 * kubectl、Namespace、Pod、ReplicaSet、DaemonSet、Deployment、Service
 
-今回は、kubernetesのよりアーキテクチャの部分にダイブして、難しいだが面白い機能見っていきます。
+今回は、kubernetesのより深い部分にダイブして見っていきます。
 
-* Secret
+* Secret  
     パスワードやトークン、キーなどの少量の機密データを含むオブジェクトのことです。Secretを使用すれば、アプリケーションコードに機密データを含める必要がなくなります。
-* ConfigMap
+* ConfigMap  
     機密性のないデータをキーと値のペアで保存するために使用されるAPIオブジェクトです。Podは、環境変数、コマンドライン引数、またはボリューム内の設定ファイルとしてConfigMapを使用できます。ConfigMapを使用すると、環境固有の設定をコンテナイメージから分離できるため、アプリケーションを簡単に移植できるようになります。
-* Kubernetes API
+* Kubernetes API  
     Kubernetesの中核であるControl PlaneはAPI serverです。APIサーバーは、エンドユーザー、クラスターのさまざまな部分、および外部コンポーネントが相互に通信できるようにするHTTP APIを公開します。
-* ServiceAccount
-* RBAC
+* ServiceAccount  
+    Podに付与し、アプリケーションが利用するアカウント
+* RBAC  
     kubernetesクラスタのリソースへのアクセスを制御する方法です。
-    ユーザー（サービスアカウント）と権限管理です。
+    ユーザー（およびサービスアカウント）の権限管理です。
 
 前回より、少し難しくなったと思いますが、セキュリティに関する重要なこともあるので、
 頑張っていきましょう。
 
+# 1回目の宿題
+
+EKSでServiceでアプリケーションを公開すると、ALBオブジェクトが自動的に作成されます。
+少し時間を経てば、ブラウザなどで見れるようになります。
 
 ```
 k create ns handson
@@ -36,6 +41,14 @@ k -n handson get secret
 k -n handson get secret handson-secret -o yaml
 echo "xxxxxxxxx" | base64 --decode
 ```
+ここでは、Secretの中身を見えていますが、実体は暗号化されています。  
+k8s上全てのオブジェクト情報がetcdに保存されているが、Secretはetcdに保存時および読み取り時に  
+暗号化・復号化が行われることができる。  
+デフォルトでは暗号化・復号化されてないが、下記のプロバイダーから適切に設定することができる。  
+https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/#providers  
+今回はEKSを使ってますので、既にセキュアな設定になっています。  
+・デフォルトetcdが保護されている  
+・クラスター作成時に、AWS KMSがエンベロープ暗号化に設定済み  
 
 作成したSecretをpodから利用できるようにする
 
@@ -117,10 +130,10 @@ code course2/nginx.yaml
 
 ## APIによる操作
 
-今までは、全てkubectlでkubernetesを操作したが、kubernetesは本来全ての操作をRestfulApiを通して実行できる。
-kubectlはあくまでApiを呼び出すだけのコマンドツールです。
-今回以降の内容では、一部APIで操作する内容になりますので、まずApiを呼び出す方法を見てみよう。
-そして、APIによるクラスタの操作において、セキュリティ上すごく重要なポイントも押さえておきましょう。
+今までは、全てkubectlでkubernetesを操作したが、kubernetesは本来全ての操作をRestfulApiを通して実行できる。  
+kubectlはあくまでApiを呼び出すだけのコマンドツールです。  
+今回以降の内容では、一部APIで操作する内容になりますので、まずApiを呼び出す方法を見てみよう。  
+そして、APIによるクラスタの操作において、セキュリティ上すごく重要なポイントも押さえておきましょう。  
 
 ### Api呼び出すに必要な認証情報を取得(RBAC)
 
@@ -141,13 +154,13 @@ kubectl config view | grep server
 取得した認証情報を使ってAPIを呼び出す
 
 ```bash
-curl https://9AF59156DA4A8ECF5387DD3B70C353F9.gr7.ap-northeast-1.eks.amazonaws.com/apis --header "Authorization: Bearer $TOKEN" -k
+curl {server}/apis --header "Authorization: Bearer $TOKEN" -k
 ```
 
 ApiでPodを作成してみよ
 
 ```bash
-curl https://9AF59156DA4A8ECF5387DD3B70C353F9.gr7.ap-northeast-1.eks.amazonaws.com/api/v1/namespaces/handson/pods --header "Authorization: Bearer $TOKEN" -k -X POST -H 'Content-Type: application/json' -d "{\"kind\": \"Pod\",\"apiVersion\": \"v1\",\"metadata\": {\"name\": \"curlpod\",\"namespace\": \"handson\",\"labels\": {\"name\": \"examplepod\"}},\"spec\": {\"containers\": [{\"name\": \"nginx\",\"image\": \"nginx\",\"ports\": [{\"containerPort\": 80}]}]}}"
+curl {server}/api/v1/namespaces/handson/pods --header "Authorization: Bearer $TOKEN" -k -X POST -H 'Content-Type: application/json' -d "{\"kind\": \"Pod\",\"apiVersion\": \"v1\",\"metadata\": {\"name\": \"curlpod\",\"namespace\": \"handson\",\"labels\": {\"name\": \"examplepod\"}},\"spec\": {\"containers\": [{\"name\": \"nginx\",\"image\": \"nginx\",\"ports\": [{\"containerPort\": 80}]}]}}"
 ```
 
 RoleおよびRoleBindingを作成する
@@ -159,7 +172,7 @@ k -n handson create rolebinding rb-pod-admin --role=r-pod-admin --serviceaccount
 もう一回ApiでPodを作成してみよ
 
 ```bash
-curl https://9AF59156DA4A8ECF5387DD3B70C353F9.gr7.ap-northeast-1.eks.amazonaws.com/api/v1/namespaces/handson/pods --header "Authorization: Bearer $TOKEN" -k -X POST -H 'Content-Type: application/json' -d "{\"kind\": \"Pod\",\"apiVersion\": \"v1\",\"metadata\": {\"name\": \"curlpod\",\"namespace\": \"handson\",\"labels\": {\"name\": \"examplepod\"}},\"spec\": {\"containers\": [{\"name\": \"nginx\",\"image\": \"nginx\",\"ports\": [{\"containerPort\": 80}]}]}}"
+curl {server}/api/v1/namespaces/handson/pods --header "Authorization: Bearer $TOKEN" -k -X POST -H 'Content-Type: application/json' -d "{\"kind\": \"Pod\",\"apiVersion\": \"v1\",\"metadata\": {\"name\": \"curlpod\",\"namespace\": \"handson\",\"labels\": {\"name\": \"examplepod\"}},\"spec\": {\"containers\": [{\"name\": \"nginx\",\"image\": \"nginx\",\"ports\": [{\"containerPort\": 80}]}]}}"
 ```
 
 kubectlでpod作成されたか確認してみる
