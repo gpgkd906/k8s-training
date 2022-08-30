@@ -1,0 +1,13 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: handson-rolebinding
+  namespace: handson
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: handson-role
+subjects:
+- kind: ServiceAccount
+  name: handson-account
+  namespace: handson
