@@ -32,6 +32,8 @@ k create -f course2/nginx.yaml
 k create -f course2/nginx.svc.yaml
 ```
 
+# kubernetesを俯瞰しよう
+![kubernetesのアーキテクチャ](./course2/kubernetes_architecture.png)
 ## Secret
 Secretを作成する
 ```bash
@@ -145,7 +147,7 @@ cd /var/run/secrets/kubernetes.io/serviceaccount
 export TOKEN=$(cat token)
 ```
 
-kubernetesのApi-ServerのURLを確認する
+apiServerのURLを確認する
 
 ```bash
 kubectl config view | grep server
