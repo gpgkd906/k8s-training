@@ -30,6 +30,7 @@ EKSでServiceでアプリケーションを公開すると、ALBオブジェク�
 k create ns handson
 k create -f course2/nginx.yaml
 k create -f course2/nginx.svc.yaml
+k -n handson get all
 ```
 
 # kubernetesを俯瞰しよう
@@ -139,6 +140,12 @@ kubectlはあくまでApiを呼び出すだけのコマンドツールです。
 
 ### Api呼び出すに必要な認証情報を取得(RBAC)
 
+apiServerのendpointを確認する
+
+```bash
+kubectl config view | grep server
+```
+
 ```bash
 k -n handson get pod
 k -n handson get pod {pod/name} -o yaml
@@ -147,21 +154,20 @@ cd /var/run/secrets/kubernetes.io/serviceaccount
 export TOKEN=$(cat token)
 ```
 
-apiServerのURLを確認する
-
-```bash
-kubectl config view | grep server
-```
 
 取得した認証情報を使ってAPIを呼び出す
 
 ```bash
+cd /var/run/secrets/kubernetes.io/serviceaccount
+export TOKEN=$(cat token)
 curl {server}/apis --header "Authorization: Bearer $TOKEN" -k
 ```
 
 ApiでPodを作成してみよ
 
 ```bash
+cd /var/run/secrets/kubernetes.io/serviceaccount
+export TOKEN=$(cat token)
 curl {server}/api/v1/namespaces/handson/pods --header "Authorization: Bearer $TOKEN" -k -X POST -H 'Content-Type: application/json' -d "{\"kind\": \"Pod\",\"apiVersion\": \"v1\",\"metadata\": {\"name\": \"curlpod\",\"namespace\": \"handson\",\"labels\": {\"name\": \"examplepod\"}},\"spec\": {\"containers\": [{\"name\": \"nginx\",\"image\": \"nginx\",\"ports\": [{\"containerPort\": 80}]}]}}"
 ```
 
@@ -174,6 +180,8 @@ k -n handson create rolebinding rb-pod-admin --role=r-pod-admin --serviceaccount
 もう一回ApiでPodを作成してみよ
 
 ```bash
+cd /var/run/secrets/kubernetes.io/serviceaccount
+export TOKEN=$(cat token)
 curl {server}/api/v1/namespaces/handson/pods --header "Authorization: Bearer $TOKEN" -k -X POST -H 'Content-Type: application/json' -d "{\"kind\": \"Pod\",\"apiVersion\": \"v1\",\"metadata\": {\"name\": \"curlpod\",\"namespace\": \"handson\",\"labels\": {\"name\": \"examplepod\"}},\"spec\": {\"containers\": [{\"name\": \"nginx\",\"image\": \"nginx\",\"ports\": [{\"containerPort\": 80}]}]}}"
 ```
 
@@ -235,4 +243,7 @@ code course2/nginx.yaml
 ```bash
 k apply -f course2/nginx.yaml
 ```
+
+・必要がなければ、サービスアカウントをpodに付与しない。
+・必要があれば、専用なサービスアカウントを作成して付与する。
 
