@@ -2,6 +2,7 @@ kind: PersistentVolume
 apiVersion: v1
 metadata:
   name: pv1g
+  namespace: handson
 spec:
   storageClassName: local-sc
   capacity:

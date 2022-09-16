@@ -2,10 +2,11 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: local-claim
+  namespace: handson
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: local-sc
+  storageClassName: default/local-sc
   resources:
     requests:
       storage: 1Gi
