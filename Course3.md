@@ -143,9 +143,7 @@ aws iam create-policy --policy-name __PolicyName__ --policy-document file://cour
 AmazonEKS_EBS_CSI_DriverRole を作成する
 
 ```
-aws iam create-role \
-  --role-name __RoleName__ \
-  --assume-role-policy-document file://course3/trust-policy.json
+aws iam create-role --role-name __RoleName__ --assume-role-policy-document file://course3/trust-policy.json
 > {
 >     "Role": {
 >         ...
@@ -158,9 +156,7 @@ aws iam create-role \
 新しい IAM ポリシーをロールにアタッチします
 
 ```
-aws iam attach-role-policy \
---policy-arn __PolicyArn__ \
---role-name __RoleName__
+aws iam attach-role-policy --policy-arn __PolicyArn__ --role-name __RoleName__
 ```
 
 Amazon EBS CSI ドライバーをデプロイする
@@ -172,9 +168,7 @@ k apply -k "github.com/kubernetes-sigs/aws-ebs-csi-driver/deploy/kubernetes/over
 EBS CSI Controllerのサービスアカウントに、ロールのリソースネームをアノテーションつける
 
 ```
-k annotate serviceaccount ebs-csi-controller-sa \
-  -n kube-system \
-  eks.amazonaws.com/role-arn=__RoleArn__
+k annotate serviceaccount ebs-csi-controller-sa -n kube-system eks.amazonaws.com/role-arn=__RoleArn__
 ```
 
 EBS CSI Controllerのpodを削除して、再生させる
@@ -207,10 +201,10 @@ kubectl describe pv {pv name}
 # podとコンテナ
 今回ストレージを勉強しました。
 kubernetesのストレージでは、
-・コンテナーのライフタイムを共有するもの
-・podのライムタイムを共有するもの
-・nodeのライムタイムを共有するもの
+* コンテナーのライフタイムを共有するもの
+* podのライムタイムを共有するもの
+* nodeのライムタイムを共有するもの
 など存在していることがわかる。
 
-では、podとは何か？コンテナーと違うけど、どう違うか、とみんなは思うと思います。
+では、podとは何か？コンテナーと違うけど、どう違うか、とみんなは思わないか？  
 次回、4回目はpodを詳しく見て行きたいのでまたよろしくお願いします。

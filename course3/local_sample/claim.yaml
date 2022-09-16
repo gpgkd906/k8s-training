@@ -6,7 +6,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: default/local-sc
+  storageClassName: local-sc
   resources:
     requests:
       storage: 1Gi
