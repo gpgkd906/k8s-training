@@ -4,7 +4,6 @@ metadata:
   labels:
     app: handson-db
   name: handson-db
-  namespace: handson
 spec:
   ports:
     - name: "mariadb"

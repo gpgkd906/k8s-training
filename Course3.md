@@ -10,6 +10,27 @@ kubernetesのような分散化システムでは、ストレージをどのよ�
 そしてどのようにpodに与えたり、複数のpodでストレージを共有したりする方法論から、  
 ストレージの用途に合わせて、書き込み専有だったり種類別の設定方法をハンズオンして行きます。  
 
+# 2回目の復習
+configmapを作成して、コンテナにファイルとしてマウントする
+
+```
+k -n handson create configmap handson-config --from-literal=name=handson --from-literal=env=develop
+```
+```yaml
+      containers:
+      - image: nginx
+      ...
+        volumeMounts:
++        - name: nginx-index-file
++          mountPath: /usr/share/nginx/html/
+      volumes:
++      - name: nginx-index-file
++        configMap:
++          name: index-html-configmap
+```
+
+# 本編開始
+
 # kubernetesにおけるストレージの考え方
 
 dockerやkubernetesで動いているコンテナでは、コンテナ側で自分よりも  
@@ -63,29 +84,7 @@ Kubernetesボリュームの抽象化は、これらの問題の両方を解決�
 
 ```
 k create ns handson
-
 ```
-
-# 2回目の復習
-configmapを作成して、コンテナにファイルとしてマウントする
-
-```
-k -n handson create configmap handson-config --from-literal=name=handson --from-literal=env=develop
-```
-```yaml
-      containers:
-      - image: nginx
-      ...
-        volumeMounts:
-+        - name: nginx-index-file
-+          mountPath: /usr/share/nginx/html/
-      volumes:
-+      - name: nginx-index-file
-+        configMap:
-+          name: index-html-configmap
-```
-
-# 本編開始
 
 ## nodeのローカルストレージを使って 永続的なストレージ を作成する
 ```

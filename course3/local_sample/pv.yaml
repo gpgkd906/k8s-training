@@ -1,12 +1,12 @@
 kind: PersistentVolume
 apiVersion: v1
 metadata:
-  name: pv1G
+  name: pv1g
 spec:
   storageClassName: local-sc
   capacity:
     storage: 1Gi
   accessModes:
-  - ReadWriteMany
+  - ReadWriteOnce
   hostPath:
     path: /tmp
