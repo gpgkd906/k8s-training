@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: emptydir-app
+  namespace: handson
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: emptydir-app
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: emptydir-app
+    spec:
+      containers:
+      - name: app
+        image: centos
+        command: ["/bin/sh"]
+        args: ["-c", "while true; do echo $(date -u) >> /data/out.txt; sleep 5; done"]
+        volumeMounts:
+        - name: temp-storage
+          mountPath: /data
+      volumes:
+      - name: temp-storage
+        emptyDir: {}
+status: {}

@@ -54,10 +54,11 @@ Kubernetesボリュームの抽象化は、これらの問題の両方を解決�
 
 ## いくつかの概念
 
-* Volume  
+* **Volume**  
     Podと同じライフタイムを共有するストレージの抽象化となり、同じpod上にある複数コンテナがそれを共有できる。
+    使い捨てか、永続化と選択は可能です。
 
-* Persistent Volume  
+* **Persistent Volume**  
     PersistentVolume (PV)はストレージクラスを使って管理者もしくは動的に  
     ロビジョニングされるクラスターのストレージの一部です。  
     PVはVolumeのようなボリュームプラグインですが、PVを使う個別のPodとは独立した  
@@ -66,7 +67,7 @@ Kubernetesボリュームの抽象化は、これらの問題の両方を解決�
     また、クラウドサービスがContainer Storage Interface (CSI)に準拠し提供したものはnodeの  
     ライフタイムを超えてデータを保存する。  
 
-* Persistent Volume Claim  
+* **Persistent Volume Claim**  
     PersistentVolumeClaim (PVC)はユーザーによって要求されるストレージです。  
     PVCはPVリソースを消費し、特定のサイズやアクセスモードを要求することができます。  
     ※例えば、ReadWriteOnce、ReadOnlyMany、ReadWriteMany  
@@ -74,7 +75,7 @@ Kubernetesボリュームの抽象化は、これらの問題の両方を解決�
     あるクラスタにて、ユーザーから35GBiのPVCを要求する場合、その要求を満たせる最も適切なストレージを与えられる。  
     例えばクラスタ上、10GBi, 20GBi, 50GBiのPVが存在するなら、この場合、50GBiのストレージが与えられる。  
 
-* StorageClass
+* **StorageClass** 
     StorageClass は、管理者が提供するストレージの「クラス」を記述する方法を提供します。  
     さまざまなクラスが、サービス品質レベル、バックアップ ポリシー、またはクラスター管理者  
     によって決定された任意のポリシーにマップされる場合があります。  
@@ -86,18 +87,37 @@ Kubernetesボリュームの抽象化は、これらの問題の両方を解決�
 k create ns handson
 ```
 
+## 使い捨てのストレージを使う
+
+```
+k apply -f course3/emptydir_sample/
+k -n handson get pods --watch
+k -n handson get pv,pvc,storageclass
+k -n handson describe pv {pv name}
+k -n handson exec -it {pod name} -- cat /data/out.txt
+k -n handson delete pod {pod name}
+k -n handson get pods --watch
+k -n handson exec -it {pod name} -- cat /data/out.txt
+```
+podが終了し、再生された場合、データがなくなったことをわかりますね。
+
 ## nodeのローカルストレージを使って 永続的なストレージ を作成する
 ```
 k apply -f course3/local_sample/
-kubectl get pods --watch
-k get pv,pvc,storageclass
-kubectl describe pv {pv name}
-k exec -it app -- cat /data/out.txt
+k -n handson get pods --watch
+k -n handson get pv,pvc,storageclass
+k -n handson describe pv {pv name}
+k -n handson exec -it local-app -- cat /data/out.txt
+k -n handson delete pod {pod name}
+k -n handson get pods --watch
+k -n handson exec -it {pod name} -- cat /data/out.txt
 ```
+podが終了し、再生された場合、データが残ってることをわかりますね。
 
 作成したリソースを削除する
 
 ```
+k delete -f course3/emptydir_sample/
 k delete -f course3/local_sample/
 ```
 
@@ -177,23 +197,23 @@ EBS CSI Controllerのpodを削除して、再生させる
 k delete pods -n kube-system -l=app=ebs-csi-controller
 ```
 
-ebsのサンプルを適用してみる
+# ebsのストレージを使ってみる
 
 ```
 k apply -f course3/ebs_sample/
-kubectl get pods --watch
-k get pv,pvc,storageclass
-kubectl describe pv {pv name}
-k exec -it app -- cat /data/out.txt
+k -n handson get pods --watch
+k -n handson get pv,pvc,storageclass
+k -n handson describe pv {pv name}
+k -n handson exec -it ebs-app -- cat /data/out.txt
 ```
 
 # クラスターにmariadbをデプロイしてみる
 
 ```
 k apply -f course3/mariadb/
-kubectl get pods --watch
-k get pv,pvc,storageclass
-kubectl describe pv {pv name}
+k -n handson get pods --watch
+k -n handson get pv,pvc,storageclass
+k -n handson describe pv {pv name}
 ```
 
 3回目お疲れ様です！
@@ -204,7 +224,12 @@ kubernetesのストレージでは、
 * コンテナーのライフタイムを共有するもの
 * podのライムタイムを共有するもの
 * nodeのライムタイムを共有するもの
-など存在していることがわかる。
 
-では、podとは何か？コンテナーと違うけど、どう違うか、とみんなは思わないか？  
+など存在していることを勉強しました。
+
+今まで、いろいろな概念を勉強してきました。
+その中に、podというものを、説明もあまりしなくて使ってました。
+実際podは説明しなくとも利用はできますが、podを理解することは
+より拡張性やセキュリティの高いクラスターを構築する時に重要なことです。
+
 次回、4回目はpodを詳しく見て行きたいのでまたよろしくお願いします。
