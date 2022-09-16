@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: handson-db
+  name: handson-db
+  namespace: handson
+spec:
+  ports:
+    - name: "mariadb"
+      port: 3306
+      targetPort: 3306
+  selector:
+    app: handson-db
+  type: LoadBalancer
+status:
+  loadBalancer: {}
