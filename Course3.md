@@ -132,13 +132,23 @@ k delete -f course3/local_sample/
 k config view
 > - cluster:
 >     ...
->   name: __ClusterName__.__Region__.eksctl.io
+>   name: __01_ClusterName__.__02_Region__.eksctl.io
 ```
 
-IAM OIDC Providerを取得
+Cluster OIDC Providerを取得
 ```
-aws eks describe-cluster --name __ClusterName__ --query "cluster.identity.oidc.issuer" --output text
-> https://oidc.eks.ap-northeast-1.amazonaws.com/id/__OidcProvider__
+aws eks describe-cluster --name __01_ClusterName__ --query "cluster.identity.oidc.issuer" --output text
+> https://oidc.eks.ap-northeast-1.amazonaws.com/id/__03_OidcProvider__
+```
+
+取得したCluster OIDC Provider が IAM OIDC Provider に存在しているかをチェック
+```
+aws iam list-open-id-connect-providers | grep __03_OidcProvider__
+```
+存在していないのであれば作成する
+
+```
+eksctl utils associate-iam-oidc-provider --cluster __01_ClusterName__ --approve
 ```
 
 AWS AccountIdを取得
@@ -147,31 +157,31 @@ aws iam get-user
 > {
 >     "User": {
 >         ...
->         "Arn": "arn:aws:iam::__AccountId__:user/xxxx",
+>         "Arn": "arn:aws:iam::__04_AccountId__:user/xxxx",
 >         ...
 >     }
 > }
 ```
 
-AmazonEKS_EBS_CSI_Driver_Policy という IAM ポリシーを作成
+AmazonEKS_EBS_CSI_00_Driver_Policy という IAM ポリシーを作成
 ```
-aws iam create-policy --policy-name __PolicyName__ --policy-document file://course3/example-iam-policy.json
+aws iam create-policy --policy-name __05_PolicyName__ --policy-document file://course3/example-iam-policy.json
 > {
 >     "Policy": {
 >         ...
->         "Arn": "__PolicyArn__",
+>         "Arn": "__06_PolicyArn__",
 >         ...
 >     }
 > }
 ```
-AmazonEKS_EBS_CSI_DriverRole を作成する
+AmazonEKS_EBS_00_CSI_DriverRole を作成する
 
 ```
-aws iam create-role --role-name __RoleName__ --assume-role-policy-document file://course3/trust-policy.json
+aws iam create-role --role-name __07_RoleName__ --assume-role-policy-document file://course3/trust-policy.json
 > {
 >     "Role": {
 >         ...
->         "Arn": "__RoleArn__",
+>         "Arn": "__08_RoleArn__",
 >         ...
 >     }
 > }
@@ -180,7 +190,7 @@ aws iam create-role --role-name __RoleName__ --assume-role-policy-document file:
 新しい IAM ポリシーをロールにアタッチします
 
 ```
-aws iam attach-role-policy --policy-arn __PolicyArn__ --role-name __RoleName__
+aws iam attach-role-policy --policy-arn __06_PolicyArn__ --role-name __07_RoleName__
 ```
 
 Amazon EBS CSI ドライバーをデプロイする
@@ -192,7 +202,7 @@ k apply -k "github.com/kubernetes-sigs/aws-ebs-csi-driver/deploy/kubernetes/over
 EBS CSI Controllerのサービスアカウントに、ロールのリソースネームをアノテーションつける
 
 ```
-k annotate serviceaccount ebs-csi-controller-sa -n kube-system eks.amazonaws.com/role-arn=__RoleArn__
+k annotate serviceaccount ebs-csi-controller-sa -n kube-system eks.amazonaws.com/role-arn=__08_RoleArn__
 ```
 
 EBS CSI Controllerのpodを削除して、再生させる
