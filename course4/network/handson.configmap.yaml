@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: index-html-configmap
+  namespace: handson
+data:
+  index.html: |
+    welcome to namespace handson
