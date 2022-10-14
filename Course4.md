@@ -111,7 +111,7 @@ digで見つけたホスト名をいろいろ試してみる
 /#nettool: curl nginx
 ```
 
-dnsの設定を見ていく
+最初のbashに戻って、dnsの設定を見ていく
 ```
 k -n kube-system get all
 k -n kube-system get deployment.apps/coredns -o yaml
@@ -133,12 +133,14 @@ configmapを更新したらcorednsのpodを削除して設定を反映させる
 k -n kube-system get all
 k -n kube-system delete {coredns pod1} {coredns pod2}
 ```
+
 nettoolのbashに戻って、再度curlしてみる
 ```
 /#nettool: curl target
 /#nettool: curl target2
 ```
-configmapにrewriteルールを拡張してみる
+
+最初のbashに戻って、configmapにrewriteルールを拡張してみる
 ```yaml
 ...
 /# k -n kube-system edit configmap coredns
@@ -192,7 +194,7 @@ nettoolから handsonのnginx をアクセスできないことを確認する
 
 もうちょっと細かいルールを設定してみよう、
 nettoolからのみアクセスできるようにする。
-まず、もう一つのnettoolを立ち上げます。
+まず、もう一つのnettool2を立ち上げます。
 ``` 
 k run nettool2 --image=ubuntu -- sleep infinity
 k exec -it nettool2 -- bash
@@ -200,7 +202,8 @@ k exec -it nettool2 -- bash
 /#nettool2: curl target
 /#nettool2: curl target2
 ```
-handsonのnspを変更してみる
+
+最初のbashに戻って、handsonのnspを変更してみる
 ```yaml
 /# vim course4/network/handson.nsp.yaml
 ...
@@ -219,12 +222,14 @@ handsonのnspを変更してみる
 k delete -f course4/network/handson.nsp.yaml
 k create -f course4/network/handson.nsp.yaml
 ```
-nettoolから handsonのnginx をアクセスできることを確認する
+
+nettoolのbashに戻って、nettoolから handsonのnginx をアクセスできることを確認する
 ```
 /#nettool: curl target
 /#nettool: curl target2
 ```
-nettool2から handsonのnginx をアクセスできないことを確認する
+
+nettool2のbashに戻って、nettool2から handsonのnginx をアクセスできないことを確認する
 ```
 /#nettool: curl target
 /#nettool: curl target2
