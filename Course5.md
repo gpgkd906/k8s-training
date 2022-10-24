@@ -1,6 +1,6 @@
-Kubernetesを仕上げよう
+Kubernetesでサービスを作成しよう
 ===================
-# Kubernetesを診断しよう
+# Kubernetesを仕上げよう
 [CIS Kubernetes Benchmark](https://www.cisecurity.org/benchmark/kubernetes)
 ```
 k apply -f https://raw.githubusercontent.com/aquasecurity/kube-bench/main/job.yaml
@@ -9,8 +9,10 @@ k logs {pod名}
 ```
 
 # Helmを使ってみよう
-[Helm](https://helm.sh/)
+HelmはKubernetesのパッケージマネージャーです。
+Helmを使うと、Kubernetesのアプリケーションを簡単にインストールできます。
 
+[Helm](https://helm.sh/)
 
 # APIをクラスタにデプロイしてみよう
 ```
