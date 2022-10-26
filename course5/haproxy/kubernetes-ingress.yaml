@@ -1,0 +1,135 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    meta.helm.sh/release-name: kubernetes-ingress
+    meta.helm.sh/release-namespace: haproxy-controller
+  generation: 1
+  labels:
+    app.kubernetes.io/instance: kubernetes-ingress
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: kubernetes-ingress
+    app.kubernetes.io/version: 1.8.7
+    helm.sh/chart: kubernetes-ingress-1.23.3
+  name: kubernetes-ingress
+  namespace: haproxy-controller
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 2
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: kubernetes-ingress
+      app.kubernetes.io/name: kubernetes-ingress
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app.kubernetes.io/instance: kubernetes-ingress
+        app.kubernetes.io/name: kubernetes-ingress
+    spec:
+      volumes:
+      - name: keycloak-pubkey-file
+        configMap:
+          name: keycloak-pub
+      containers:
+      - args:
+        - --default-ssl-certificate=haproxy-controller/kubernetes-ingress-default-cert
+        - --configmap=haproxy-controller/kubernetes-ingress
+        - --http-bind-port=8080
+        - --https-bind-port=8443
+        - --default-backend-service=haproxy-controller/kubernetes-ingress-default-backend
+        - --ingress.class=haproxy
+        - --publish-service=haproxy-controller/kubernetes-ingress
+        - --log=info
+        volumeMounts:
+        - name: keycloak-pubkey-file
+          mountPath: /etc/haproxy/pem/
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        image: gpgkd906/kubernetes-ingress-oauth:latest
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: 1042
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: kubernetes-ingress-controller
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        - containerPort: 8443
+          name: https
+          protocol: TCP
+        - containerPort: 1024
+          name: stat
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: 1042
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          requests:
+            cpu: 250m
+            memory: 400Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            add:
+            - NET_BIND_SERVICE
+            drop:
+            - ALL
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+          seccompProfile:
+            type: RuntimeDefault
+        startupProbe:
+          failureThreshold: 20
+          httpGet:
+            path: /healthz
+            port: 1042
+            scheme: HTTP
+          periodSeconds: 1
+          successThreshold: 1
+          timeoutSeconds: 1
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: kubernetes-ingress
+      serviceAccountName: kubernetes-ingress
+      terminationGracePeriodSeconds: 60
+status:

@@ -23,12 +23,14 @@ helm repo update \
     --namespace openfaas  \
     --set functionNamespace=openfaas-fn \
     --set generateBasicAuth=true
-k apply -f course5/api/ingress.yaml
+k apply -f course5/api/ingress.alb.yaml
 ```
 openfaasの管理画面URLを取得する
 ```
 k -n openfaas get ingress
 ```
+__API_HOST__: {ingressのdomain}
+
 openfaasのBasic認証パスワードを取得する
 ```
 echo $(kubectl -n openfaas get secret basic-auth -o jsonpath="{.data.basic-auth-password}" | base64 --decode)
@@ -57,7 +59,10 @@ k -n keycloak-system create secret generic api-auth --from-env-file=./course5/au
 ```
 k create -f course5/auth/keycloak.yaml
 k -n keycloak-system rollout status deploy/keycloak
+k -n keycloak-system get svc
 ```
+__KEYCLOAK_HOST__: {keycloak svcのexternalIP}
+
 
 認証サーバーにて、下記手順で認証用tokenを取得する
 * 左上のプルダウンメニューから、[Create realm]を選択、handsonという名前でRealmを作成する。
@@ -68,10 +73,13 @@ k -n keycloak-system rollout status deploy/keycloak
 * [Save]を選択する。
 * タブの[Credentials]を選択し、[Client secret]を見つけて、コピーする。
 
+__CLIENT_ID__: {client id}
+__CLIENT_SECRET__: {client secret}
+
 アクセスtokenを取得してみる。
 ```
 curl --request POST \
-    --url 'http://__KEYCLOAK_HOST__/realms/__REALM_NAME__/protocol/openid-connect/token' \
+    --url 'http://__KEYCLOAK_HOST__/realms/handson/protocol/openid-connect/token' \
     --data 'client_id=__CLIENT_ID__' \
     --data 'client_secret=__CLIENT_SECRET__' \
     --data 'grant_type=client_credentials'
@@ -106,7 +114,7 @@ helm install kubernetes-ingress haproxytech/kubernetes-ingress \
     --namespace haproxy-controller \
     --set controller.service.type=LoadBalancer
 ```
-apiのingressを修正する
+apiのingressを更新する。
 ```yaml
   annotations:
 -    alb.ingress.kubernetes.io/scheme: internet-facing
@@ -121,8 +129,8 @@ spec:
 ```
 修正後のingressを適用し、エンドポイントが変わるのでもう一回取得する
 ```
-k delete -f course5/api/ingress.yaml 
-k create -f course5/api/ingress.yaml
+k delete -f course5/api/ingress.alb.yaml 
+k create -f course5/api/ingress.haproxy.yaml
 k -n openfaas get ingress
 ```
 新しいエンドポイントを使って、APIを叩いてみる
@@ -142,10 +150,8 @@ k -n haproxy-controller create configmap keycloak-pub --from-file=keycloak=cours
 * haproxyのoauthモジュールを有効化したイメージに変更
 * configmapで作成した公開鍵をマウントさせる
 
-```
-k -n haproxy-controller get deployment.apps/kubernetes-ingress -o yaml > course5/haproxy/kubernetes-ingress.yaml
-```
-vim course5/haproxy/kubernetes-ingress.yaml
+トレニーングの時間上の都合で、修正後のファイルを用意したので、それを使ってhaproxyのdeploymentを更新する。
+
 ```yaml
     spec:
 +      volumes:
@@ -161,7 +167,6 @@ vim course5/haproxy/kubernetes-ingress.yaml
 -        image: haproxytech/kubernetes-ingress:1.8.6
 +        image: gpgkd906/kubernetes-ingress-oauth:latest
 ```
-設定更新したら、deploymentを再作成する
 ```
 k delete -f course5/haproxy/kubernetes-ingress.yaml
 k create -f course5/haproxy/kubernetes-ingress.yaml
@@ -169,20 +174,19 @@ k create -f course5/haproxy/kubernetes-ingress.yaml
 
 そして、haproxyのoauthの設定を追加する
 haproxy-kubernetes-ingressの設定はconfigmap/kubernetes-ingressで管理されているので、
-それを書き出して、変更し、反映させる。
-```
-k -n haproxy-controller get configmap kubernetes-ingress -o yaml > course5/haproxy/configmap.yaml
-```
-vim course5/haproxy/configmap.yaml
+それを書き出して、変更し反映させる。
+こちらもトレニーングのため、修正後のファイルを用意しておくので、それを更新して、haproxyのconfigmapを更新する。
+__KEYCLOAK_HOST__と__API_HOST__と更新してください。
+
 ```yaml
 ...
   namespace: haproxy-controller
 +data:
 +  global-config-snippet: |
 +    lua-load /usr/local/share/lua/5.3/jwtverify.lua
-+    setenv OAUTH_ISSUER http://__KEYCLOAK_HOST__/realms/__REALM_NAME__
++    setenv OAUTH_ISSUER http://__KEYCLOAK_HOST__/realms/handson
 +    setenv OAUTH_AUDIENCE http://__API_HOST__/function
-+    setenv OAUTH_PUBKEY_PATH __PUBLIC_KEY_PATH__
++    setenv OAUTH_PUBKEY_PATH /etc/haproxy/pem/keycloak
 +  frontend-config-snippet: |
 +    http-request allow if { path_beg /ui/ }
 +    http-request allow if { path_beg /system/ }
@@ -190,7 +194,6 @@ vim course5/haproxy/configmap.yaml
 +    http-request lua.jwtverify
 +    http-request deny deny_status 403 unless { var(txn.authorized) -m bool }
 ```
-設定を変更次第、反映させる。
 ```
 k apply -f course5/haproxy/configmap.yaml
 k -n haproxy-controller rollout restart deploy/kubernetes-ingress
@@ -204,7 +207,7 @@ curl 'http://__API_HOST__/function/haveibeenpwned' \
 もう一度、アクセスtokenを取得して、ヘッダーにつけてAPIを叩く。
 ```
 curl --request POST \
-    --url 'http://__KEYCLOAK_HOST__/realms/__REALM_NAME__/protocol/openid-connect/token' \
+    --url 'http://__KEYCLOAK_HOST__/realms/handson/protocol/openid-connect/token' \
     --data 'client_id=__CLIENT_ID__' \
     --data 'client_secret=__CLIENT_SECRET__' \
     --data 'grant_type=client_credentials'
