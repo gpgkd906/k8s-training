@@ -26,7 +26,9 @@ openfaasの管理画面URLを取得する
 ```
 k -n openfaas get ingress
 ```
-__API_HOST__: {ingressのdomain}
+```
+export __API_HOST__={ingressのdomain}
+```
 
 openfaasのBasic認証パスワードを取得する
 ```
@@ -42,15 +44,14 @@ APIの管理画面に入って、APIをデプロイしてみよう。
 
 curlでデプロイしたAPIを叩いてみる
 ```
-curl 'http://__API_HOST__/function/haveibeenpwned' \
+curl http://$__API_HOST__/function/haveibeenpwned \
     --data-raw 'chen@kdl.co.jp'
 ```
 
 # APIに認証をかけよう
 ## 認証サーバーをデプロイする
-認証サーバーの管理画面にアクセスするために、デフォルトの管理者情報を設定し、k8sのシークレットに保存する
+認証サーバーの管理画面にアクセスするために、デフォルトの管理者情報をk8sのシークレットに保存する
 ```
-vim course5/auth/env
 k create ns keycloak-system
 k -n keycloak-system create secret generic api-auth --from-env-file=./course5/auth/env
 ```
@@ -60,37 +61,34 @@ k create -f course5/auth/keycloak.yaml
 k -n keycloak-system rollout status deploy/keycloak
 k -n keycloak-system get svc
 ```
-__KEYCLOAK_HOST__: {keycloak svcのexternalIP}
+```
+export __KEYCLOAK_HOST__={keycloak svcのexternalIP}
+```
 
 
 認証サーバーにて、下記手順で認証用tokenを取得する
 * 左上のプルダウンメニューから、[Create realm]を選択、handsonという名前でRealmを作成する。
 * Realmを作成次第、左のサイドバーから[Clients]を選択し、[Create client]を選択する。
-* client idには、handson-chen-apiと入力し、[Next]を選択する。
+* client idには、handson-clientと入力し、[Next]を選択する。
 * [Client authentication]と[Authorization]をonにチェックする。
 * Authentication flowの[Standard flow]と[Direct Access Grants]のチェックを外す。
 * [Save]を選択する。
 * タブの[Credentials]を選択し、[Client secret]を見つけて、コピーする。
 
-__CLIENT_ID__: {client id}
-__CLIENT_SECRET__: {client secret}
+```
+export __CLIENT_ID__={client id}
+export __CLIENT_SECRET__={client secret}
+```
 
 アクセスtokenを取得してみる。
 ```
 curl --request POST \
-    --url 'http://__KEYCLOAK_HOST__/realms/handson/protocol/openid-connect/token' \
-    --data 'client_id=__CLIENT_ID__' \
-    --data 'client_secret=__CLIENT_SECRET__' \
-    --data 'grant_type=client_credentials'
+    --url http://$__KEYCLOAK_HOST__/realms/handson/protocol/openid-connect/token \
+    --data client_id=$__CLIENT_ID__ \
+    --data client_secret=$__CLIENT_SECRET__ \
+    --data grant_type=client_credentials
 ```
 tokenをとれたら、認証サーバーの正常に設定できたことが確認できる。
-
-作成したClientに、後に認証をかけるAPIのURLなどを登録する
-* 左のサイドバーから[Clients]を選択し、今作成したClientを選択する。
-* タブの[Client scopes]を選択し、[*******-dedicated]を選択する。
-* タブの[Mappers]を選抲し、[Add mapper]をクリックし、[By configuration]クリックして[Audience]を選択。
-* [name]には適当に設定し、[Included Custom Audience]には、APIのURLを設定する。
-* [Save]を選択する。
 
 そして、下記手順で認証サーバーの公開鍵をダウンロードして、API側に設定する。
 * サイドバーの[Realm Settings]を選択する。
@@ -113,7 +111,7 @@ helm install kubernetes-ingress haproxytech/kubernetes-ingress \
     --namespace haproxy-controller \
     --set controller.service.type=LoadBalancer
 ```
-apiのingressを更新する。
+apiのingressを更新部分は下記となりますが、今回は変更後のファイルをそのまま適用するようにします。
 ```yaml
   annotations:
 -    alb.ingress.kubernetes.io/scheme: internet-facing
@@ -134,9 +132,21 @@ k -n openfaas get ingress
 ```
 新しいエンドポイントを使って、APIを叩いてみる
 ```
-curl 'http://__API_HOST__/function/haveibeenpwned' \
+export __API_HOST__={新しいdomain}
+```
+
+```
+curl http://$__API_HOST__/function/haveibeenpwned \
   --data-raw 'chen@kdl.co.jp'
 ```
+
+新しいAPIのエンドポイントを生成すれば、それを認証サーバーに登録する、認証サーバー管理画面に戻る。
+* 左のサイドバーから[Clients]を選択し、先ほど作成したClientを選択する。
+* タブの[Client scopes]を選択し、[*******-dedicated]を選択する。
+* タブの[Mappers]を選抲し、[Add mapper]をクリックし、[By configuration]クリックして[Audience]を選択。
+* [name]には適当に設定し、[Included Custom Audience]には、APIのURLを設定する。
+  > http://__API_HOST__/function
+* [Save]を選択する。
 
 認証サーバーに認証をかけるようにhaproxyに設定を追加する
 まずは、ダウンロードした認証サーバーの公開鍵をhaproxyに登録する。
@@ -150,7 +160,6 @@ k -n haproxy-controller create configmap keycloak-pub --from-file=keycloak=cours
 * configmapで作成した公開鍵をマウントさせる
 
 トレニーングの時間上の都合で、修正後のファイルを用意したので、それを使ってhaproxyのdeploymentを更新する。
-
 ```yaml
     spec:
 +      volumes:
@@ -196,22 +205,23 @@ __KEYCLOAK_HOST__と__API_HOST__と更新してください。
 ```
 k apply -f course5/haproxy/configmap.yaml
 k -n haproxy-controller rollout restart deploy/kubernetes-ingress
+k -n haproxy-controller rollout status deploy/kubernetes-ingress
 ```
 
 APIを叩いて、認証がかかっていることを確認する
 ```
-curl 'http://__API_HOST__/function/haveibeenpwned' \
+curl http://$__API_HOST__/function/haveibeenpwned \
   --data-raw 'chen@kdl.co.jp'
 ```
 もう一度、アクセスtokenを取得して、ヘッダーにつけてAPIを叩く。
 ```
 curl --request POST \
-    --url 'http://__KEYCLOAK_HOST__/realms/handson/protocol/openid-connect/token' \
-    --data 'client_id=__CLIENT_ID__' \
-    --data 'client_secret=__CLIENT_SECRET__' \
-    --data 'grant_type=client_credentials'
+    --url http://$__KEYCLOAK_HOST__/realms/handson/protocol/openid-connect/token \
+    --data client_id=$__CLIENT_ID__ \
+    --data client_secret=$__CLIENT_SECRET__ \
+    --data grant_type=client_credentials
 
-curl 'http://__API_HOST__/function/haveibeenpwned' \
+curl http://$__API_HOST__/function/haveibeenpwned \
   -H 'authorization: Bearer __TOKEN__' \
   --data-raw 'chen@kdl.co.jp'
 ```
@@ -232,6 +242,13 @@ curl 'http://__API_HOST__/function/haveibeenpwned' \
 * [name]には適当に設定し、[Included Custom Audience]には、APIのURLを設定する。
 * [Save]を選択する。
 * 同じように、client scopeに[pro]およびclientに[pro-client]を作成する。
+
+```
+export __FREE_CLIENT_ID__={free client id}
+export __FREE_CLIENT_SECRET__={free client secret}
+export __PRO_CLIENT_ID__={pro client id}
+export __PRO_CLIENT_SECRET__={pro client secret}
+```
 
 そして、API側でfree-clientおよびpro-clientのrate limitを設定する。
 haproxyのconfigmapを変更し、設定を追加する
@@ -254,4 +271,30 @@ data:
 k apply -f course5/haproxy/configmap.yaml
 k -n haproxy-controller rollout restart deploy/kubernetes-ingress
 k -n haproxy-controller get pod --watch
+```
+
+freeのアクセスtokenを取得して、ヘッダーにつけてAPIを叩く。
+```
+curl --request POST \
+    --url http://$__KEYCLOAK_HOST__/realms/handson/protocol/openid-connect/token \
+    --data client_id=$__FREE_CLIENT_ID__ \
+    --data client_secret=$__FREE_CLIENT_SECRET__ \
+    --data grant_type=client_credentials
+
+curl http://$__API_HOST__/function/haveibeenpwned \
+  -H 'authorization: Bearer __TOKEN__' \
+  --data-raw 'chen@kdl.co.jp'
+```
+
+proのアクセスtokenを取得して、ヘッダーにつけてAPIを叩く。
+```
+curl --request POST \
+    --url http://$__KEYCLOAK_HOST__/realms/handson/protocol/openid-connect/token \
+    --data client_id=$__PRO_CLIENT_ID__ \
+    --data client_secret=$__PRO_CLIENT_SECRET__ \
+    --data grant_type=client_credentials
+
+curl http://$__API_HOST__/function/haveibeenpwned \
+  -H 'authorization: Bearer __TOKEN__' \
+  --data-raw 'chen@kdl.co.jp'
 ```
