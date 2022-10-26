@@ -18,11 +18,8 @@ Helmを使うと、Kubernetesのアプリケーションを簡単にインスト
 ```
 k apply -f https://raw.githubusercontent.com/openfaas/faas-netes/master/namespaces.yml
 helm repo add openfaas https://openfaas.github.io/faas-netes/
-helm repo update \
- && helm upgrade openfaas --install openfaas/openfaas \
-    --namespace openfaas  \
-    --set functionNamespace=openfaas-fn \
-    --set generateBasicAuth=true
+helm repo update
+helm upgrade openfaas --install openfaas/openfaas --namespace openfaas --set functionNamespace=openfaas-fn --set generateBasicAuth=true
 k apply -f course5/api/ingress.alb.yaml
 ```
 openfaasの管理画面URLを取得する
@@ -35,6 +32,8 @@ openfaasのBasic認証パスワードを取得する
 ```
 echo $(kubectl -n openfaas get secret basic-auth -o jsonpath="{.data.basic-auth-password}" | base64 --decode)
 ```
+openfaasのパスワード: {Basic認証パスワード}
+
 APIの管理画面に入って、APIをデプロイしてみよう。
 * サイドバーの「Deploy New Function」をクリック
 * [Have I Been Pwned]のFunctionを選択し、右下の[Deploy]をクリック
@@ -44,7 +43,7 @@ APIの管理画面に入って、APIをデプロイしてみよう。
 curlでデプロイしたAPIを叩いてみる
 ```
 curl 'http://__API_HOST__/function/haveibeenpwned' \
-  --data-raw 'chen@kdl.co.jp'
+    --data-raw 'chen@kdl.co.jp'
 ```
 
 # APIに認証をかけよう
