@@ -268,7 +268,7 @@ data:
 ```
 設定を変更次第、反映させる。
 ```
-k apply -f course5/haproxy/configmap.yaml
+k apply -f course5/haproxy/configmap.plan.yaml
 k -n haproxy-controller rollout restart deploy/kubernetes-ingress
 k -n haproxy-controller get pod --watch
 ```

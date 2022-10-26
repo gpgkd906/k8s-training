@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  annotations:
+    meta.helm.sh/release-name: kubernetes-ingress
+    meta.helm.sh/release-namespace: haproxy-controller
+  labels:
+    app.kubernetes.io/instance: kubernetes-ingress
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: kubernetes-ingress
+    app.kubernetes.io/version: 1.8.7
+    helm.sh/chart: kubernetes-ingress-1.23.3
+  name: kubernetes-ingress
+  namespace: haproxy-controller
+data:
+  global-config-snippet: |
+    lua-load /usr/local/share/lua/5.3/jwtverify.lua
+    setenv OAUTH_ISSUER http://__KEYCLOAK_HOST__/realms/handson
+    setenv OAUTH_AUDIENCE http://__API_HOST__/function
+    setenv OAUTH_PUBKEY_PATH /etc/haproxy/pem/keycloak
+  frontend-config-snippet: |
+    http-request allow if { path_beg /ui/ }
+    http-request allow if { path_beg /system/ }
+    http-request deny deny_status 401 unless { req.hdr(authorization) -m found }
+    http-request lua.jwtverify
+    http-request deny deny_status 403 unless { var(txn.authorized) -m bool }
+    stick-table  type ipv6  size 100k  expire 24h  store http_req_cnt
+    http-request track-sc0 src
+    http-request deny deny_status 429 if { var(txn.oauth.scope) -m sub free } { sc_http_req_cnt(0) gt 3 }
+    http-request deny deny_status 429 if { var(txn.oauth.scope) -m sub pro } { sc_http_req_cnt(0) gt 5 }
