@@ -252,7 +252,10 @@ export __PRO_CLIENT_SECRET__={pro client secret}
 
 そして、API側でfree-clientおよびpro-clientのrate limitを設定する。
 haproxyのconfigmapを変更し、設定を追加する
-vim course5/haproxy/configmap.yaml
+こちらもトレニーングのため、修正後のファイルを用意しておくので、それを更新して、haproxyのconfigmapを更新する。
+__KEYCLOAK_HOST__と__API_HOST__と更新してください。
+
+vim course5/haproxy/configmap.plan.yaml
 ```yaml
 ...
   namespace: haproxy-controller
