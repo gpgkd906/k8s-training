@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: openfaas-ingress
+  name: openfaas-ingress2
   namespace: openfaas
   annotations:
     ingress.class: haproxy
